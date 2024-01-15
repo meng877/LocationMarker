@@ -12,11 +12,18 @@ from location_marker.storage import LocationStorage, Point, Location
 class Config(Serializable):
     teleport_hint_on_coordinate: bool = True
     item_per_page: int = 10
+    sync_to_bluemap: bool = False
 
 
 config: Config
 storage = LocationStorage()
 server_inst: PluginServerInterface
+
+bluemap_id = {
+    0: "Overworld",
+    -1: "Nether",
+    1: "End"
+}
 
 
 def show_help(source: CommandSource):
@@ -174,6 +181,24 @@ def list_locations(source: CommandSource, *, keyword: Optional[str] = None, page
     else:
         source.reply('共找到§6{}§r个路标'.format(matched_count))
 
+def sync_to_bluemap(x, y, z, dim, name):
+    server_inst.execute(f"bmarker create poi")
+    server_inst.execute(f"bmarker-setup id {get_index(name)}")
+    server_inst.execute(f"bmarker-setup label {name}")
+    server_inst.execute(f"bmarker-setup marker_set sync_{bluemap_id[dim]}")
+    server_inst.execute(f"bmarker-setup position {x} {y} {z}")
+    server_inst.execute("bmarker-setup build")
+
+def get_index(name):
+    file_path = os.path.join(server_inst.get_data_folder(), constants.STORAGE_FILE)
+    with open(file_path, 'r', encoding='utf8') as file:
+        index = 1
+        for item in json.load(file):
+            if item["name"] == name:
+                break
+            else:
+                index += 1
+    return index
 
 def add_location(source: CommandSource, name, x, y, z, dim, desc=None):
     if storage.contains(name):
@@ -182,6 +207,8 @@ def add_location(source: CommandSource, name, x, y, z, dim, desc=None):
     try:
         location = Location(name=name, desc=desc, dim=dim, pos=Point(x=x, y=y, z=z))
         storage.add(location)
+        if config.sync_to_bluemap == True:
+            sync_to_bluemap(x, y, z, dim, name)
     except Exception as e:
         source.reply('路标§b{}§r添加§c失败§r: {}'.format(name, e))
         server_inst.logger.exception('Failed to add location {}'.format(name))
@@ -202,6 +229,9 @@ def add_location_here(source: CommandSource, name, desc=None):
 
 
 def delete_location(source: CommandSource, name):
+    if config.sync_to_bluemap == True:
+        loc = storage.get(name)
+        server_inst.execute(f"bmarker delete {bluemap_id[loc.dim]} sync {get_index(name)}")
     loc = storage.remove(name)
     if loc is not None:
         source.get_server().say('已删除路标§b{}§r'.format(name))

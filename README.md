@@ -30,4 +30,9 @@ Marker config file path: `config/location_marker/config.json`
 
 - [MCDReforged](https://github.com/Fallen-Breath/MCDReforged) >= 2.0.0
 - [Minecraft Data API](https://github.com/MCDReforged/MinecraftDataAPI)
+- [BlueMap Marker Manager](https://github.com/MiraculixxT/bluemap-marker)
+
+
+# 未来计划：
+1.移除对[BlueMap Marker Manager](https://github.com/MiraculixxT/bluemap-marker)的依赖
 

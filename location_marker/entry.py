@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import base64
 from typing import Callable, Any, Optional, Union
 
 from mcdreforged.api.all import *
@@ -182,23 +183,13 @@ def list_locations(source: CommandSource, *, keyword: Optional[str] = None, page
         source.reply('共找到§6{}§r个路标'.format(matched_count))
 
 def sync_to_bluemap(x, y, z, dim, name):
+    server_inst.execute("bmarker-setup cancel")
     server_inst.execute(f"bmarker create poi")
-    server_inst.execute(f"bmarker-setup id {get_index(name)}")
+    server_inst.execute(f"bmarker-setup id {str(base64.b64encode(name.encode('utf-8')))[2:-1]}")
     server_inst.execute(f"bmarker-setup label {name}")
     server_inst.execute(f"bmarker-setup marker_set sync_{bluemap_id[dim]}")
     server_inst.execute(f"bmarker-setup position {x} {y} {z}")
     server_inst.execute("bmarker-setup build")
-
-def get_index(name):
-    file_path = os.path.join(server_inst.get_data_folder(), constants.STORAGE_FILE)
-    with open(file_path, 'r', encoding='utf8') as file:
-        index = 1
-        for item in json.load(file):
-            if item["name"] == name:
-                break
-            else:
-                index += 1
-    return index
 
 def add_location(source: CommandSource, name, x, y, z, dim, desc=None):
     if storage.contains(name):
@@ -231,7 +222,7 @@ def add_location_here(source: CommandSource, name, desc=None):
 def delete_location(source: CommandSource, name):
     if config.sync_to_bluemap == True:
         loc = storage.get(name)
-        server_inst.execute(f"bmarker delete {bluemap_id[loc.dim]} sync {get_index(name)}")
+        server_inst.execute(f"bmarker delete {bluemap_id[loc.dim]} sync {str(base64.b64encode(name.encode('utf-8')))[2:-1]}")
     loc = storage.remove(name)
     if loc is not None:
         source.get_server().say('已删除路标§b{}§r'.format(name))
